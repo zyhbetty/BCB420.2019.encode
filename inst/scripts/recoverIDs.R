@@ -32,8 +32,8 @@ recoverIDs <- function(ensp, mart = myMart) {
                       stringsAsFactors = FALSE)
 
   # Send off biomart query
-  bm <- biomaRt::getBM(filters    =   "ensembl_peptide_id",
-                       attributes = c("ensembl_peptide_id",
+  bm <- biomaRt::getBM(filters    =   "ensembl_gene_id",
+                       attributes = c("ensembl_gene_id",
                                       myAtt$biomart),
                        values     = ensp,
                        mart       = myMart)
@@ -65,9 +65,9 @@ recoverIDs <- function(ensp, mart = myMart) {
   }
   # Post-process. Careful: ensemble_peptide_ids are not necessarily
   # unique in biomart output.
-  bm <- bm[! is.na(bm$sym), c("ensembl_peptide_id", "sym")]
-  bm <- bm[! duplicated(bm$ensembl_peptide_id), ]
-  matchedIDs <- match(ensp, bm$ensembl_peptide_id)
+  bm <- bm[! is.na(bm$sym), c("ensembl_gene_id", "sym")]
+  bm <- bm[! duplicated(bm$ensembl_gene_id), ]
+  matchedIDs <- match(ensp, bm$ensembl_gene_id)
 
   esMap <- data.frame(ensp = ensp,
                       sym = bm$sym[matchedIDs],

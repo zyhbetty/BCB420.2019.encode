@@ -73,10 +73,122 @@ load(url(myURL))  # loads HGNC data frame
 
 ## 4.1 which ID to map?
 ```
-# Read the differential data, there are several columns: gene ID , fold change, log fold change and pvalues
+# Read the differential data, there are several columns: id , fold change, log fold change and pvalues,etc.
 
-tmp <- readr::read_delim("../data/ENCFF768GAH.tsv" ,delim = " ",skip = 1)
+tmp <- read.delim("/Users/yuhanzhang/Downloads/BCB420.2019.encode/data/ENCFF768GAH.tsv", header=TRUE, sep="\t")
+head(tmp)
+  rowID                 id  baseMean baseMeanA baseMeanB foldChange log2FoldChange         pval         padj
+1     1 ENSG00000000003.10 2693.0461 2627.1502 2758.9420  1.0501653     0.07061643 3.285189e-01 6.047569e-01
+2     2  ENSG00000000005.5    0.0000    0.0000    0.0000         NA             NA           NA           NA
+3     3  ENSG00000000419.8 1814.2725 1488.1768 2140.3682  1.4382486     0.52431311 3.483299e-10 2.346446e-09
+4     4  ENSG00000000457.9  239.4773  305.9247  173.0298  0.5655962    -0.82215578 9.737404e-07 4.775592e-06
+5     5 ENSG00000000460.12  354.1951  234.6976  473.6925  2.0183103     1.01314798 1.714617e-12 1.408435e-11
+6     6  ENSG00000000938.8    0.0000    0.0000    0.0000         NA             NA           NA           NA
+# id are Ensembl Gene id, each of them would be mapped to hgnc symbol.
+# fold change, log2foldchange and pval and adjusted pvalue are the results of difference gene expression.
+# some genes does not have values(NA), which need to be deleted 
+tmp <- na.omit(tmp)
+
+# delete suffix in ids
+tmp$id <-gsub(".[0-9]+$","", tmp$id)
+
+uENSG <- unique(tmp$id) ## 25645 unique ids
+```
+
+## 4.2 mapping via biomaRt
+```
+# Map ENSP to HGNC symbols: open a "Mart" object ..
+myMart <- biomaRt::useMart("ensembl", dataset="hsapiens_gene_ensembl")
+tmp2 <- biomaRt::getBM(filters = "ensembl_gene_id",
++                       attributes = c("ensembl_gene_id",
++                                      "hgnc_symbol"),
++                       values = uENSG,
++                       mart = myMart)
+                                                                                                            
+> head(tmp2)
+  ensembl_gene_id hgnc_symbol
+1 ENSG00000000003      TSPAN6
+2 ENSG00000000419        DPM1
+3 ENSG00000000457       SCYL3
+4 ENSG00000000460    C1orf112
+5 ENSG00000000971         CFH
+6 ENSG00000001036       FUCA2
+
+# defining mapping tool
+ensp2sym <- tmp2$hgnc_symbol
+names(ensp2sym) <- tmp2$ensembl_gene_id
+> head(ensp2sym)
+ENSG00000000003 ENSG00000000419 ENSG00000000457 ENSG00000000460 ENSG00000000971 ENSG00000001036 
+       "TSPAN6"          "DPM1"         "SCYL3"      "C1orf112"           "CFH"         "FUCA2" 
+
+```
+
+There are three possible problems we may encounter
+- There might be more than one value returned. The ID appears more than once in tmp2$ensembl_gene_id, with different mapped symbols.
+```
+sum(duplicated(tmp2$ensembl_gene_id)) ## 0 Luckily we don't have this kind of problem.
+```
+- There might be nothing returned for one ENSG ID. We have the ID in uENSG, but it does not appear in tmp2$ensembl_gene_id:
+```
+sum(! (uENSG) %in% tmp2$ensembl_gene_id)
+[1] 1125
+```
+- There might be no value returned: NA, or "". The ID appears in `tmp2$ensembl_gene_id`, but there is no symbol in `tmp2$hgnc_symbol`.
+```
+sum(is.na(ensp2sym)) # 0, we don't need to consider this part.
+```
+
+Now we fix these problems.
+First, we add the symbols that were not returned by biomaRt to the map. They are present in uENSG, but not in ensp2sym:
+
+ 
+```
+  sel <- ! (uENSG %in% names(ensp2sym))
+  x <- rep(NA, sum( sel))
+  names(x) <- uENSG[ sel ]
+
+  # confirm uniqueness
+  any(duplicated(c(names(x), names(ensp2sym))))  # FALSE
+
+  # concatenate the two vectors
+  ensp2sym <- c(ensp2sym, x)
+
+  # confirm
+  all(uENSG %in% names(ensp2sym))  # TRUE
   
+```
+Next we set the symbols for which only an empty string was returned to NA:
+```
+sel <- which(ensp2sym == "") # 4754 elements
+  ensp2sym[head(sel)] # before ...
+  ensp2sym[sel] <- NA
+  ensp2sym[head(sel)] # ... after
 
+  # Do we still have all ENSG IDs accounted for?
+  all( uENSG %in% names(ensp2sym))  # TRUE
 
+```
+## 4.2.3 Additional symbols
+A function for using biomaRt for more detailed mapping is in the file `inst/scripts/recoverIds.R`. We have loaded it previously, and use it on all elements of ensp2sym that are NA.
+
+ 
+```
+  # How many NAs are there in "ensp2sym" column?
+  sum(is.na(ensp2sym))   # 5879
+
+  # subset the ENSG IDs
+  unmappedENSG <- names(ensp2sym)[is.na(ensp2sym)]
+
+  # use our function recoverIDs() to try and map the unmapped ensp IDs
+  # to symboils via other cross-references
+  recoveredENSG <- recoverIDs(unmappedENSG)
+
+  # how many did we find
+  nrow(recoveredENSG)  # 11. Not much, but it's honest work.
+
+  # add the recovered symbols to ensp2sym
+  ensp2sym[recoveredENSP$ensp] <- recoveredENSP$sym
+
+  # validate:
+  sum(is.na(ensp2sym))  # 436 - 11 less than 447
 ```
