@@ -2,6 +2,46 @@
 # 1 About the package
 This package describes the workflow of how to download file data from Encode, how to map IDs to HGNC IDs and statistics of data frame.
 
+in this project :
+```
+ --BCB420.2019.encode/
+   |__.Rbuildignore
+   |__.gitignore
+   |__BCB420.2019.encode.Rproj
+   |__DESCRIPTION
+   |__Ggmaplot-encode.png
+   |__Ggmaplot-hgnc.png
+   |__LICENSE
+   |__NAMESPACE
+   |__R/
+      |__lseq.R
+      |__zzz.R
+   |__README 2.md
+   |__README.md
+   |__data/
+      |__ENCFF768GAH.tsv
+      |__Encode_hgyc.RData
+   |__dev/
+      |__functionTemplate.R
+      |__rptTwee.R
+   |__encode model.jpg
+   |__encode.jpg
+   |__inst/
+      |__extdata/
+         |__ensp2sym.RData
+         |__test_lseq.dat
+      |__scripts/
+         |__recoverIDs.R
+         |__scriptTemplate.R
+   |__man/
+      |__lseq.Rd
+   |__tests/
+      |__testthat.R
+      |__testthat/
+         |__helper-functions.R
+         |__test_lseq.R
+         
+```
 
 # 2 Encode database
 The Encyclopedia of DNA Elements (ENCODE) is a public research project whose purpose is to identify functional elements in the human genome. Right now it has extended to other organisms like mouse and fly.
