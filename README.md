@@ -200,7 +200,7 @@ A function for using biomaRt for more detailed mapping is in the file `inst/scri
   # validate:
   sum(is.na(ensp2sym))  # 5874 - 5 less than 5879
 ```
-# 4.3 :outdated symbols
+## 4.3 :outdated symbols
 We now have each unique ENSG IDs represented once in our mapping table. But  We need to compare the symbols to our reference data and try to fix any problem like incorrect symbols. Symbols that do not appear in the reference table will also be set to NA.
 
  
@@ -304,4 +304,10 @@ ggmaplot(tmp, main = expression("Group 1" %->% "Group 2"),
 ![MA-plot for means and log2fold change](https://github.com/zyhbetty/BCB420.2019.encode/blob/master/Ggmaplot-hgnc.png)
 
 # 6 Reference
-Example codes for biomaRt,igraph, mapping tool from ENSG ID to HGNC symbol was taken from [STRING](https://github.com/hyginn/BCB420.2019.STRING)
+Example codes for biomaRt and mapping tool from ENSG ID to HGNC symbol was taken from [STRING](https://github.com/hyginn/BCB420.2019.STRING)
+
+Encode pictures and information are captured from official website [Encode](https://www.encodeproject.org/data/annotations/)
+
+Further reading for Annotations of Encode 
+
+- Venkat S. Malladi,1 Drew T. Erickson,1 Nikhil R. Podduturi,1 Laurence D. Rowe,1 Esther T. Chan,1 Jean M. Davidson,1 Benjamin C. Hitz,1 Marcus Ho,1 Brian T. Lee,2 Stuart Miyasato,1 Gregory R. Roe,1 Matt Simison,1 Cricket A. Sloan,1 J. Seth Strattan,1 Forrest Tanaka,1 W. James Kent,2 J. Michael Cherry,1 and Eurie L. Hong1 (2019). [**Ontology application and use at the ENCODE DCC**](http://europepmc.org/articles/PMC4360730). The Journal of Biological Databases and Curation, published by 2015 Mar 16
