@@ -56,7 +56,7 @@ if (! requireNamespace("biomaRt", quietly = TRUE)) {
   BiocManager::install("biomaRt")
 }
 ```
-Next we source a utility function that we will use later, for mapping ENSP IDs to gene symbols if the mapping can not be achieved directly.
+Next we source a utility function that we will use later, for mapping ENSG IDs to gene symbols if the mapping can not be achieved directly. I overwrote this file but basic structure is same as recoverIDs.R in STRING.
 
 ```
 source("inst/scripts/recoverIDs.R")
@@ -93,11 +93,13 @@ tmp <- na.omit(tmp)
 tmp$id <-gsub(".[0-9]+$","", tmp$id)
 
 uENSG <- unique(tmp$id) ## 25645 unique ids
+# statistics of data frame
+nrow(tmp) 25645
 ```
 
 ## 4.2 mapping via biomaRt
 ```
-# Map ENSP to HGNC symbols: open a "Mart" object ..
+# Map ENSG to HGNC symbols: open a "Mart" object ..
 myMart <- biomaRt::useMart("ensembl", dataset="hsapiens_gene_ensembl")
 tmp2 <- biomaRt::getBM(filters = "ensembl_gene_id",
 +                       attributes = c("ensembl_gene_id",
@@ -184,11 +186,89 @@ A function for using biomaRt for more detailed mapping is in the file `inst/scri
   recoveredENSG <- recoverIDs(unmappedENSG)
 
   # how many did we find
-  nrow(recoveredENSG)  # 11. Not much, but it's honest work.
+  nrow(recoveredENSG)  # 5. Not much, but it's honest work.
 
   # add the recovered symbols to ensp2sym
-  ensp2sym[recoveredENSP$ensp] <- recoveredENSP$sym
+  ensp2sym[recoveredENSG$ensp] <- recoveredENSG$sym
 
   # validate:
-  sum(is.na(ensp2sym))  # 436 - 11 less than 447
+  sum(is.na(ensp2sym))  # 5874 - 5 less than 5879
 ```
+# 4.4 Step four: outdated symbols
+We now have each unique ENSG IDs represented once in our mapping table. But  We need to compare the symbols to our reference data and try to fix any problem like incorrect symbols. Symbols that do not appear in the reference table will also be set to NA.
+
+ 
+```
+  # are all symbols present in the reference table?
+  sel <- ( ! (ensp2sym %in% HGNC$sym)) & ( ! (is.na(ensp2sym)))
+  length(        ensp2sym[ sel ] )  # 2341 unknown
+  
+  # put these symbols in a new dataframe
+  unkSym <- data.frame(unk = ensp2sym[ sel ],
+                       new = NA,
+                       stringsAsFactors = FALSE)
+
+  # Inspect:
+  # several of these are formatted like "TNFSF12-TNFSF13" or "TMED7-TICAM2".
+  # This looks like biomaRt concatenated symbol names.
+  grep("TNFSF12", HGNC$sym) # 23984: TNFSF12
+  grep("TNFSF13", HGNC$sym) # 23985 23986: TNFSF13 and TNFSF13B
+  grep("TMED7",   HGNC$sym) # 23630: TMED7
+  grep("TICAM2",  HGNC$sym) # 23494: TICAM2
+
+  # It's not clear why this happened. We will take a conservative approach
+  # and not make assumptions which of the two symbols is the correct one,
+  # i.e. we will leave these symbols as NA
+
+
+  # grep() for the presence of the symbols in either HGNC$prev or
+  # HGNC$synonym. If either is found, that symbol replaces NA in unkSym$new
+  for (i in seq_len(nrow(unkSym))) {
+    iPrev <- grep(unkSym$unk[i], HGNC$prev)[1] # take No. 1 if there are several
+    if (length(iPrev) == 1) {
+      unkSym$new[i] <- HGNC$sym[iPrev]
+    } else {
+      iSynonym <- which(grep(unkSym$unk[i], HGNC$synonym))[1]
+      if (length(iSynonym) == 1) {
+        unkSym$new[i] <- HGNC$sym[iSynonym]
+      }
+    }
+  }
+
+  # How many did we find?
+  sum(! is.na(unkSym$new))  # 36
+
+  # We add the contents of unkSym$new back into ensp2sym. This way, the
+  # newly mapped symbols are updated, and the old symbols that did not
+  # map are set to NA.
+
+  ensp2sym[rownames(unkSym)] <- unkSym$new
+```
+
+## 4.5 Final validation
+Validation and statistics of our mapping tool:
+
+
+```
+ # do we now have all ENSG IDs mapped?
+ all(uENSG %in% names(ensp2sym))  # TRUE
+
+ # how many symbols did we find?
+ sum(! is.na(ensp2sym))  # 17466
+
+ # (in %)
+ sum(! is.na(ensp2sym)) * 100 / length(ensp2sym)  # 68.0 %
+
+ # are all symbols current in our reference table?
+ all(ensp2sym[! is.na(ensp2sym)] %in% HGNC$sym)  # TRUE
+
+ # Done.
+ # This concludes construction of our mapping tool.
+ # Save the map:
+
+ save(ensp2sym, file = file.path("inst", "extdata", "ensp2sym.RData"))
+
+ # From an RStudio project, the file can be loaded with
+ load(file = file.path("inst", "extdata", "ensp2sym.RData"))
+```
+# 5 Annotataing gene sets with Encode data
