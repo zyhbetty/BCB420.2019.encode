@@ -1,0 +1,16 @@
+Package: encode
+Type: Package
+Title: R Package for Encode
+Version: 0.1.0
+Date: 2019-02-04
+Authors@R: c(
+    person("Boris", "Steipe", email = "boris.steipe@utoronto.ca", role = c("ctb"), comment = c(ORCID = "0000-0002-1134-6758")),
+    person("Yuhan", "Zhang", email = "yuhan.zhang@mail.utoronto.ca", role = c("aut","cre"), comment = c(ORCID = "0000-0003-1275-7951"))
+    )
+Description: a RStudio package for association of encode database with HGNC
+License: file LICENSE
+Encoding: UTF-8
+LazyData: true
+Suggests:
+    testthat
+RoxygenNote: 6.1.1
