@@ -25,12 +25,12 @@ The Metedata organization contains six accessions to be reused in experimental p
 There are lots of ways to download source data from Encode and you can even access those data on other database like USUC or GO,etc.Here I introduced one method.
 
 - Navigate to  [**Encode**](https://www.encodeproject.org/) , click "HUMAN" and then click filtered Data Matrix
-- Now you will see experimental results listed in matrix. In the left side you can choose any filter you want ro achieve your own datasets.here we choose GRCH38 in genome assembly as the filter.
+- Now you will see experimental results listed in tables. In the left side you can choose any filter you want to achieve your own datasets.here we choose GRCH38 in genome assembly as the filter.
 - Now it shows 8795 results, there are three buttons under the "8795 Results", click the first button and the results will be listed as one in each line
 - Click the "Download" button
 - you will now get a file.txt which contains a list of URLs to a file containing all experimental metedata and links to download the data.
 - choose what you want.
-- Inreality, you can search for the specific experiment/assay/biosample you want on search portal only if you know their IDs or some keys, and look at that experiment.Those file data will be listed inside and download button is just beside their ids.
+- In reality, you can search for the specific experiment/assay/biosample you want on search portal only if you know their IDs or some keys, and look at that experiment.Those file data will be listed inside and download button is just beside their ids.
 - Open the "file.txt", choose URL: https://www.encodeproject.org/files/ENCFF768GAH/@@download/ENCFF768GAH.tsv, (4.8MB) , download it and save it into a sister directory of your working directory which is called data. (It should be reachable with file.path("..", "data")).
 - ENCFF768GAH file contains differential quantifications of gene expression in shRNA RNA-seq of HepG2 experiments.
 
@@ -41,7 +41,7 @@ This assay uses ensembl ID as gene ID. To associate with HGNC symbol, we can map
 Preparations: packages, functions, files
 - make sure the required packages are installed:
 
-readr provides functions to read data which are particularly suitable for large datasets. They are much faster than the built-in read.csv() etc. But caution: these functions return "tibbles", not data frames. (Know the difference.)
+readr provides functions to read data which are particularly suitable for large datasets. 
 ```
 if (! requireNamespace("readr")) {
   install.packages("readr")
@@ -56,4 +56,27 @@ if (! requireNamespace("biomaRt", quietly = TRUE)) {
   BiocManager::install("biomaRt")
 }
 ```
+Next we source a utility function that we will use later, for mapping ENSP IDs to gene symbols if the mapping can not be achieved directly.
 
+```
+source("inst/scripts/recoverIDs.R")
+```
+
+Finally we fetch the HGNC reference data from GitHub. The recoverIDs() function requires the HGNC object to be available in the global namespace. (Nb. This shows how to load .RData files directly from a GitHub repository!)
+
+ 
+```
+myURL <- paste0("https://github.com/hyginn/",
+                "BCB420-2019-resources/blob/master/HGNC.RData?raw=true")
+load(url(myURL))  # loads HGNC data frame
+```
+
+## 4.1 which ID to map?
+```
+# Read the differential data, there are several columns: gene ID , fold change, log fold change and pvalues
+
+tmp <- readr::read_delim("../data/ENCFF768GAH.tsv" ,delim = " ",skip = 1)
+  
+
+
+```
