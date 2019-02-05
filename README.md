@@ -304,4 +304,4 @@ ggmaplot(tmp, main = expression("Group 1" %->% "Group 2"),
    ggtheme = ggplot2::theme_minimal())
 
 ```
-![alt text](http://url/to/img.png)
+![MA-plot for means and log2fold change](https://github.com/zyhbetty/BCB420.2019.encode/blob/master/Ggmaplot-hgnc.png)
