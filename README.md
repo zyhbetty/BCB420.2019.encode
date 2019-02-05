@@ -271,4 +271,37 @@ Validation and statistics of our mapping tool:
  # From an RStudio project, the file can be loaded with
  load(file = file.path("inst", "extdata", "ensp2sym.RData"))
 ```
-# 5 Annotataing gene sets with Encode data
+# 5 Annotating and mapping gene sets with Encode data
+if (! requireNamespace("igraph")) {
+  install.packages("igraph")
+}
+if (! requireNamespace("igraph")) {
+  install.packages("ggpubr")
+  library(ggpubr)
+}
+
+
+   
+Finally, we map ENSG ID to HGNC symbols, using the mapping tool `ensp2sym`
+```
+tmp$id <-ensp2sym[tmp$id]
+hgyc <- tmp
+# Done.
+# Save result
+save(hgyc, file = file.path(".", "data", "Encode_hgyc.RData"))
+
+```
+A resulting MA-plot for means and log fold change would be
+```
+ggmaplot(tmp, main = expression("Group 1" %->% "Group 2"),
+   fdr = 0.05, fc = 2, size = 0.4,
+   palette = c("#B31B21", "#1465AC", "darkgray"),
+   genenames = as.vector(tmp$id),
+   legend = "top", top = 20,
+   font.label = c("bold", 11),
+   font.legend = "bold",
+   font.main = "bold",
+   ggtheme = ggplot2::theme_minimal())
+
+```
+![alt text](http://url/to/img.png)
