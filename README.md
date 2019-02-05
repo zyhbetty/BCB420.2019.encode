@@ -1,15 +1,14 @@
 # BCB420.2019.encode
 # 1 About the package
-This package describes the workflow of how to download file data from Encode, how to map IDs to HGNC IDs and statistics of data matrix.
+This package describes the workflow of how to download file data from Encode, how to map IDs to HGNC IDs and statistics of data frame.
 
-
-The package serves dual duty, as an RStudio project, as well as an R package that can be installed. Package checks pass without errors, warnings, or notes.
 
 # 2 Encode database
 The Encyclopedia of DNA Elements (ENCODE) is a public research project whose purpose is to identify functional elements in the human genome. Right now it has extended to other organisms like mouse and fly.
 It analyzes data in an integrative fashion. Registry of candidate regulatory elements is one of the most important annotations in the integrative level.
 One achievement from this project shows that some "useless" elements in genomes are not as useless as we thought before.
 we can look at the enhancer region part and use Yufei's GTRD data to annotate the specific TFs that bind there, and identify co-regulated genes.
+![encode](https://github.com/zyhbetty/BCB420.2019.encode/blob/master/encode.jpg)
 
 ## 2.1 Data semantics
 
@@ -20,15 +19,16 @@ The Metedata organization contains six accessions to be reused in experimental p
 - An antibody lot:Each antibody lot(unique) is also associated with characterizations for its target in a species.
 - A library: A unique library is accessioned to ensure the correct files are associated with the nucleic acid material that has been created from the biosample.
 - A file: Each data file is accessioned. This accession is used as the file name, along with its file format as an extension.
+![Encode model](https://github.com/zyhbetty/BCB420.2019.encode/blob/master/encode%20model.jpg)
 
 # 3 Data Download and clean up
-There are lots of ways to download source data from Encode and you can even access those data on other database like USUC or GO,etc.Here I introduced one method.
+There are lots of ways to download source data from Encode and you can even access those data on other database like USUC or GO,etc.Here I introduce one of them.
 
 - Navigate to  [**Encode**](https://www.encodeproject.org/) , click "HUMAN" and then click filtered Data Matrix
 - Now you will see experimental results listed in tables. In the left side you can choose any filter you want to achieve your own datasets.here we choose GRCH38 in genome assembly as the filter.
-- Now it shows 8795 results, there are three buttons under the "8795 Results", click the first button and the results will be listed as one in each line
-- Click the "Download" button
-- you will now get a file.txt which contains a list of URLs to a file containing all experimental metedata and links to download the data.
+- Now it shows 8795 results, there are three buttons under the "8795 Results", click the first button and the results will be listed as one in each line.
+- Click the "Download" button. A batch download window will open and click the "Download".
+- you will now get a `file.txt` which contains a list of URLs to a file containing all experimental metedata and links to download the data.
 - choose what you want.
 - In reality, you can search for the specific experiment/assay/biosample you want on search portal only if you know their IDs or some keys, and look at that experiment.Those file data will be listed inside and download button is just beside their ids.
 - Open the "file.txt", choose URL: https://www.encodeproject.org/files/ENCFF768GAH/@@download/ENCFF768GAH.tsv, (4.8MB) , download it and save it into a sister directory of your working directory which is called data. (It should be reachable with file.path("..", "data")).
@@ -36,10 +36,10 @@ There are lots of ways to download source data from Encode and you can even acce
 
 
 # 4 Mapping ENSEMBL IDs to HGNC symbols
-This assay uses ensembl ID as gene ID. To associate with HGNC symbol, we can map ENSG ID to HGNC symbols by biomart. However,there are some different ENSG IDs that can be mapped to the same HGNC symbol, because same region may have several versions of genome. We need to be careful in the mapping and notice that not all ENSG IDs can be mapped uniquely.
+This assay uses ensembl ID as gene ID. To associate with HGNC symbol, we can map ENSG ID to HGNC symbols by biomaRt. However,there are some different ENSG IDs that can be mapped to the same HGNC symbol, because same region may have several versions of genome. We need to be careful in the mapping and notice that not all ENSG IDs can be mapped uniquely.
 
-Preparations: packages, functions, files
-- make sure the required packages are installed:
+Preparations:
+- make sure the required packages are installed and functions are sourced:
 
 readr provides functions to read data which are particularly suitable for large datasets. 
 ```
@@ -47,7 +47,7 @@ if (! requireNamespace("readr")) {
   install.packages("readr")
 }
 ```
-biomaRt biomaRt is a Bioconductor package that implements the RESTful API of biomart, the annotation framwork for model organism genomes at the EBI. It is a Bioconductor package, and as such it needs to be loaded via the BiocManager,  
+biomaRt is a Bioconductor package that implements the RESTful API of biomart, the annotation framwork for model organism genomes at the EBI. It is a Bioconductor package, and as such it needs to be loaded via the BiocManager,  
 ```
 if (! requireNamespace("BiocManager", quietly = TRUE)) {
   install.packages("BiocManager")
@@ -56,22 +56,28 @@ if (! requireNamespace("biomaRt", quietly = TRUE)) {
   BiocManager::install("biomaRt")
 }
 ```
-Next we source a utility function that we will use later, for mapping ENSG IDs to gene symbols if the mapping can not be achieved directly. I overwrote this file but basic structure is same as recoverIDs.R in STRING.
+ggpubr package provides function ggmaplot for us to plot of log2 fold change vs mean change for each gene.
+```
+if (! requireNamespace("ggpubr")) {
+  install.packages("ggpubr")
+  library(ggpubr)
+}
+```
+Next we source a utility function that we will use later, for mapping ENSG IDs to gene symbols if the mapping can not be achieved directly. I overwrote this file but basic structure is same as recoverIDs.R in [STRINGcoverIDs](https://github.com/hyginn/BCB420.2019.STRING/blob/master/inst/scripts/recoverIDs.R).
 
 ```
 source("inst/scripts/recoverIDs.R")
 ```
 
-Finally we fetch the HGNC reference data from GitHub. The recoverIDs() function requires the HGNC object to be available in the global namespace. (Nb. This shows how to load .RData files directly from a GitHub repository!)
+Finally we fetch the HGNC reference data from GitHub. 
 
- 
 ```
 myURL <- paste0("https://github.com/hyginn/",
                 "BCB420-2019-resources/blob/master/HGNC.RData?raw=true")
 load(url(myURL))  # loads HGNC data frame
 ```
 
-## 4.1 which ID to map?
+## 4.1 Detecting data frame and clean up
 ```
 # Read the differential data, there are several columns: id , fold change, log fold change and pvalues,etc.
 
@@ -85,7 +91,7 @@ head(tmp)
 5     5 ENSG00000000460.12  354.1951  234.6976  473.6925  2.0183103     1.01314798 1.714617e-12 1.408435e-11
 6     6  ENSG00000000938.8    0.0000    0.0000    0.0000         NA             NA           NA           NA
 # id are Ensembl Gene id, each of them would be mapped to hgnc symbol.
-# fold change, log2foldchange and pval and adjusted pvalue are the results of difference gene expression.
+# fold change, log2foldchange and adjusted pvalue are the results of difference gene expression.
 # some genes does not have values(NA), which need to be deleted 
 tmp <- na.omit(tmp)
 
@@ -99,7 +105,7 @@ nrow(tmp) 25645
 
 ## 4.2 mapping via biomaRt
 ```
-# Map ENSG to HGNC symbols: open a "Mart" object ..
+# Map ENSG to HGNC symbols:
 myMart <- biomaRt::useMart("ensembl", dataset="hsapiens_gene_ensembl")
 tmp2 <- biomaRt::getBM(filters = "ensembl_gene_id",
 +                       attributes = c("ensembl_gene_id",
@@ -126,11 +132,11 @@ ENSG00000000003 ENSG00000000419 ENSG00000000457 ENSG00000000460 ENSG00000000971 
 ```
 
 There are three possible problems we may encounter
-- There might be more than one value returned. The ID appears more than once in tmp2$ensembl_gene_id, with different mapped symbols.
+- More than one value could be returned. The ID appears more than once in `tmp2$ensembl_gene_id`, with different mapped symbols.
 ```
-sum(duplicated(tmp2$ensembl_gene_id)) ## 0 Luckily we don't have this kind of problem.
+sum(duplicated(tmp2$ensembl_gene_id)) ## 0 Luckily we don't have this problem.
 ```
-- There might be nothing returned for one ENSG ID. We have the ID in uENSG, but it does not appear in tmp2$ensembl_gene_id:
+- There might be nothing returned for one ENSG ID. We have the ID in `uENSG`, but it does not appear in `tmp2$ensembl_gene_id`:
 ```
 sum(! (uENSG) %in% tmp2$ensembl_gene_id)
 [1] 1125
@@ -141,7 +147,7 @@ sum(is.na(ensp2sym)) # 0, we don't need to consider this part.
 ```
 
 Now we fix these problems.
-First, we add the symbols that were not returned by biomaRt to the map. They are present in uENSG, but not in ensp2sym:
+First, we add the symbols that were not returned by biomaRt to the map. They are present in `uENSG`, but not in `ensp2sym`:
 
  
 ```
@@ -171,7 +177,7 @@ sel <- which(ensp2sym == "") # 4754 elements
 
 ```
 ## 4.2.3 Additional symbols
-A function for using biomaRt for more detailed mapping is in the file `inst/scripts/recoverIds.R`. We have loaded it previously, and use it on all elements of ensp2sym that are NA.
+A function for using biomaRt for more detailed mapping is in the file `inst/scripts/recoverIDs.R`. We have loaded it previously, and use it on all elements of ensp2sym that are NA.
 
  
 ```
@@ -194,7 +200,7 @@ A function for using biomaRt for more detailed mapping is in the file `inst/scri
   # validate:
   sum(is.na(ensp2sym))  # 5874 - 5 less than 5879
 ```
-# 4.4 Step four: outdated symbols
+# 4.3 :outdated symbols
 We now have each unique ENSG IDs represented once in our mapping table. But  We need to compare the symbols to our reference data and try to fix any problem like incorrect symbols. Symbols that do not appear in the reference table will also be set to NA.
 
  
@@ -245,7 +251,7 @@ We now have each unique ENSG IDs represented once in our mapping table. But  We 
   ensp2sym[rownames(unkSym)] <- unkSym$new
 ```
 
-## 4.5 Final validation
+## 4.4 Final validation
 Validation and statistics of our mapping tool:
 
 
@@ -272,15 +278,6 @@ Validation and statistics of our mapping tool:
  load(file = file.path("inst", "extdata", "ensp2sym.RData"))
 ```
 # 5 Annotating and mapping gene sets with Encode data
-if (! requireNamespace("igraph")) {
-  install.packages("igraph")
-}
-if (! requireNamespace("igraph")) {
-  install.packages("ggpubr")
-  library(ggpubr)
-}
-
-
    
 Finally, we map ENSG ID to HGNC symbols, using the mapping tool `ensp2sym`
 ```
@@ -305,3 +302,6 @@ ggmaplot(tmp, main = expression("Group 1" %->% "Group 2"),
 
 ```
 ![MA-plot for means and log2fold change](https://github.com/zyhbetty/BCB420.2019.encode/blob/master/Ggmaplot-hgnc.png)
+
+# 6 Reference
+Example codes for biomaRt,igraph, mapping tool from ENSG ID to HGNC symbol was taken from [STRING](https://github.com/hyginn/BCB420.2019.STRING)
