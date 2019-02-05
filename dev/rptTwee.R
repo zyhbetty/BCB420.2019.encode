@@ -1,4 +1,4 @@
-# rptTwee.R
+rptTwee()# rptTwee.R
 
 #' rptTwee
 #'
